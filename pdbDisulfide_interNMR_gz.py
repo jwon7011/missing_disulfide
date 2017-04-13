@@ -150,6 +150,8 @@ class exBedGraph:
                       expt = line.split(" ")[1]
                       expt = expt.split(",")[0]
                       print "EXPT: "+expt
+                      if expt=="X-RAY":
+                         break
                    #   line = ' '.join(line.split())
                    #   tmp = line[:-1].split(" ")
                       #starts[tmp[2]]=int(line[:-1].split(" ")[3])
@@ -211,7 +213,7 @@ class exBedGraph:
                       if tmpPDB1.prot == tmpPDB2.prot and bond[3] == bond[6]:     #Uniprot and Chains are the same
                          try:
                              curProt = self.Prots[tmpPDB1.prot]
-                             if expt.find("NMR") != -1:
+                             if expt.find("SOLUTION") != -1:
                                 found = 0
                                 for i in curProt.pdbs:
                                     if i == tmpID1:
@@ -240,7 +242,7 @@ class exBedGraph:
                                 print "Not found: "+tmpPDB1.prot
                    elif line[0:5] == "DBREF" and line.find("UNP") <> -1:
                         tmpc = line.split(" ")
-                        print line
+                        #print line[:-1]
                         chains.append(tmpc[3])
                    elif line[0:4] =="ATOM":
                         if hasSS == 0:
