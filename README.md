@@ -11,8 +11,10 @@ Only the installation of Python is necessary to use the scripts. However, additi
 
 To run the analysis use the following commands as an example:
 
+```
   python pdbDisulfide_interXray_gz -i ~/DB/pdb/  -m ~/DB/pdb/pdb_uniprot_chain_map.lst.2 -b ~/DB/pdb_uniprot_map.lst.2 -o interXRay_all_out.txt
   
   python annotatePDB.py interXRay_all_out.txt ~/DB/AllXray.txt interXray_annotated.txt
+```
   
 The output can be filtered based on column 8 which lists whether a bond is missing (SSMissing), mutated (SSMutated) or simply due to a chain sequence not covering the disulfide bond (NonOverlap). The status of whether a bond is missing in the same or different structure can be further filtered based on column 10 (0 = different PDB, 1 = same PDB).
