@@ -5,9 +5,9 @@
 
 __author__ = "Jason Wong"
 __version__ = "$Revision: 1.0 $"
-__date__ = "$Date: 2009/06/27 10:06:20 $"
-__copyright__ = "Copyright (c) 2009 Jason WH Wong"
-__license__ = "UNSW Cancer Research Centre"
+__date__ = "$Date: 2017/04/27 10:06:20 $"
+__copyright__ = "Copyright (c) 2017 Jason WH Wong"
+__license__ = "UNSW Faculty of Medicine"
 
 import sys
 import os
@@ -15,8 +15,6 @@ import getopt
 import tokenize
 import StringIO
 import gzip
-import urllib2
-import re
 import copy
 
 class pdb:
@@ -41,6 +39,9 @@ class exBedGraph:
         self.Prots = {}
         self.pdbMap = {}
 
+
+    # Reads the residue level map file from PDBSWS, such that for every PDB chain the corresponding Uniprot
+    # start, end, and positions of cysteine residues are recorded.
     def readInputMap(self):
     
         print "Processing BigMap file..."+os.path.basename(self.bigmapFile)
@@ -56,7 +57,7 @@ class exBedGraph:
 	    if len(tmp) > 7:
              try:
                 tmpPDB = self.pdbMap[tmpID]
-                if tmp[6] == 'C':
+                if tmp[6] == 'C':                  # only store cysteine positions to save memory
                   try:
                       tmpPDB.pos[int(tmp[4])]=int(tmp[7])
                   except ValueError:
@@ -96,22 +97,14 @@ class exBedGraph:
                   a = None
              except IndexError:
                 a = None
-                #print "Skipped Uniprot: "+str(tmp)
-
             c+=1
         print "PDBs: "+str(len(self.pdbMap))
-        #print str(self.pdbMap["2CGRH"].revpos[22])+"\t"+str(self.pdbMap["2CGRH"].revpos[96])
-        #print self.pdbMap["2CGRH"].revpos
-        #print str(self.pdbMap["2RGSA"].revpos[13])+"\t"+str(self.pdbMap["2RGSA"].revpos[92])
-        #print self.pdbMap["2RGSA"].revpos
-        #print str(self.pdbMap["1TFXA"].start)+"\t"+str(self.pdbMap["1TFXA"].end)
-        #print str(self.pdbMap["1TFXB"].start)+"\t"+str(self.pdbMap["1TFXB"].end)
-        #print str(self.pdbMap["1TFXC"].start)+"\t"+str(self.pdbMap["1TFXC"].end)
-        #print str(self.pdbMap["1TFXD"].start)+"\t"+str(self.pdbMap["1TFXD"].end)
-        #print self.pdbMap["11BGA"].pos[26]
-        #print self.pdbMap["11BGA"].pos[84]
 
+
+    # Builds a list of all UniProt IDs in the database and for each of these store all disulfide bonds present and all PDB chains
+    # associated with that Uniprot ID
     def processPDB(self):
+       # Creates an object holder for each UniProt protein with a list of disulfide bonds and PDB chains
 	print "Processing Input file..."+os.path.basename(self.mapFile)
         f = open(self.mapFile,'r')
         for line in f:
@@ -127,6 +120,7 @@ class exBedGraph:
 	f.close()
 	print "Uniprots: "+str(len(self.Prots))
 
+        # Start populating the disulfide bond and PDB chains list for each Uniprot protein entry.
         print "Reading PDB..."+os.path.basename(self.pdbDir)
         dirList = os.listdir(self.pdbDir)
         for fname in dirList:
@@ -146,15 +140,9 @@ class exBedGraph:
                       print "HEAD: "+header
                    elif line[0:6] =="EXPDTA":
                       line = ' '.join(line[:-1].split())
-                      #re.sub("\s{2,}","\t",line)
                       expt = line.split(" ")[1]
                       expt = expt.split(",")[0]
                       print "EXPT: "+expt
-                   #   line = ' '.join(line.split())
-                   #   tmp = line[:-1].split(" ")
-                      #starts[tmp[2]]=int(line[:-1].split(" ")[3])
-                    #  ends[tmp[2]]=int(line[:-1].split(" ")[4])
-                   #   print str(starts)+"-"+str(ends)
                    elif line[0:6] =="SSBOND":
                       hasSS = 1
                       line = ' '.join(line.split())
@@ -253,6 +241,8 @@ class exBedGraph:
                         break
                f.close()
 
+
+    # Outputs results and also work out whether each disulfide bond listed is missing in any other PDB chain and for what reason
     def outputRes(self):
         print "Output results file..."+os.path.basename(self.outFile)
         out = open(self.outFile,'w')
@@ -261,11 +251,7 @@ class exBedGraph:
             uniqXray = []               # Bonds that are only in one structure because not covered by any other
             commonXray = []             # Bonds that appear more than once
             missXray = []               # Bonds that is in one structure but not another yet is covered
-            if curProt.ID == 'P00742':
-               print str(curProt.ID)+"\t"+str(len(curProt.SSBond))+"\t"+str(len(curProt.pdbs))
             for i in curProt.SSBond:
-                if curProt.ID == 'P00742':
-                   print str(i[0])+"\t"+str(i[1])+"\t"+str(i[2])
                 for k in curProt.pdbs:
                     found = 0
                     for j in i[2]:
@@ -342,16 +328,16 @@ class exBedGraph:
             sys.exit(1)
 
 UsageInfo = """
-pdbDisulfide.py - Checks for disulfide bonds that are in NMR but not X-Ray
+pdbDisulfide_interXray_gz.py - Checks for disulfide bonds that are in the PDB chain of a XRay structure but not in others.
 
 Parameters:
- -i [FILENAME] input PDB director
- -m [FILENAME] map file
- -b [FILENAME] BigMap file
+ -i [FILENAME] input PDB directory (contains .ent.gz files directly from PDB)
+ -m [FILENAME] Chain level map file from PDBSWS (http://www.bioinf.org.uk/pdbsws/pdbsws_chain.txt.gz)
+ -b [FILENAME] Residue level map file from PDBSWS (http://www.bioinf.org.uk/pdbsws/pdbsws_res.txt.gz)
  -o [Output] Output file
 
 Example:
-  pdbDisulfide.py -i ~/D/pdbfiles -m ~/DB/pdb/pdbchains.txt -o out.txt
+  pdbDisulfide_interXray_gz -i ~/Z/DB/pdb/  -m ~/Z/DB/pdb/pdb_uniprot_chain_map.lst.2 -b ~/Z/DB/pdb_uniprot_map.lst.2 -o ~/Z/Data/disulfide/interXRay_all_out.txt
 """
 
 def Main(exBed= None):

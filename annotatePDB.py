@@ -1,9 +1,11 @@
-import pysam
 import os
 import sys
 
 #Usage: annotatePDB.py [input interXray file] [input DSB file] [outfile]
-#Add DSB annotation to interXray file
+#
+#Add DSB annotation to interXray file output from pdbDisulfide_interXray_gz.py
+#Uses output directly from pdbDisulfide_interXray_gz.py and the appropriate annotations from DSB
+#Output from DSB must be saved in tab-delimited format.
 
 if len(sys.argv) < 4:
    print "Usage: annotatePDB.py [input interXray file] [input DSB file] [outfile]"
