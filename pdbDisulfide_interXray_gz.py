@@ -24,6 +24,7 @@ class pdb:
       start = 0
       end = 0
       chain = ""
+      AA = {}
 
 class uniprot:
       ID = ""
@@ -57,6 +58,7 @@ class exBedGraph:
 	    if len(tmp) > 7:
              try:
                 tmpPDB = self.pdbMap[tmpID]
+                #if tmp[3] == 'CYS':
                 if tmp[6] == 'C':                  # only store cysteine positions to save memory
                   try:
                       tmpPDB.pos[int(tmp[4])]=int(tmp[7])
@@ -66,6 +68,10 @@ class exBedGraph:
                       tmpPDB.revpos[int(tmp[7])]=int(tmp[4])
                   except ValueError:
                       tmpPDB.revpos[int(tmp[7])]=int(tmp[4][:-1])
+                  try:
+                      tmpPDB.AA[int(tmp[4])]=tmp[3]
+                  except ValueError:
+                      tmpPDB.AA[int(tmp[4][:-1])]=tmp[3]
                 if tmpPDB.end < int(tmp[7]):
                   tmpPDB.end = int(tmp[7])
                 self.pdbMap[tmpID] = tmpPDB
@@ -73,6 +79,7 @@ class exBedGraph:
                 try:
                   tmpPDB = pdb()
                   tmpPDB.prot = tmp[5]
+                  #if tmp[3] == 'CYS':
                   if tmp[6] == 'C':
                      try:
                          tmpPDB.pos[int(tmp[4])]=int(tmp[7])
@@ -84,12 +91,17 @@ class exBedGraph:
                         tmpPDB.revpos[int(tmp[7])]=int(tmp[4][:-1])
                   tmpPDB.start = int(tmp[7])
                   tmpPDB.end = 0
+                  try:
+                      tmpPDB.AA[int(tmp[4])]=tmp[3]
+                  except ValueError:
+                      tmpPDB.AA[int(tmp[4][:-1])]=tmp[3]
                   tmpPDB2 = pdb()
                   tmpPDB2.prot = tmpPDB.prot
                   tmpPDB2.pos = copy.deepcopy(tmpPDB.pos)
                   tmpPDB2.revpos = copy.deepcopy(tmpPDB.revpos)
                   tmpPDB2.start = tmpPDB.start
                   tmpPDB2.end = tmpPDB.end
+                  tmpPDB2.AA = copy.deepcopy(tmpPDB.AA)
                   tmpPDB.pos.clear()
                   tmpPDB.revpos.clear()
                   self.pdbMap[tmpID] = tmpPDB2
@@ -142,55 +154,58 @@ class exBedGraph:
                       line = ' '.join(line[:-1].split())
                       expt = line.split(" ")[1]
                       expt = expt.split(",")[0]
-                      print "EXPT: "+expt
+                      #print "EXPT: "+expt
+                      if expt <> "X-RAY":
+                         print "NOT XRAY!!!"
+                         break
                    elif line[0:6] =="SSBOND":
                       hasSS = 1
                       line = ' '.join(line.split())
                       bond = line.split(" ")
                       pos1 = bond[4]
                       pos2 = bond[7]
-                      print line
+                      #print line
 		      try:
                       	tmpID1 = header+bond[3]
                       	tmpID2 = header+bond[6]
                       except:
-                        print "invalid SSBOND line"
+                        #print "invalid SSBOND line"
 			continue
 		      tmpPDB1 = None
                       tmpPDB2 = None
                       try:
                           tmpPDB1 = self.pdbMap[tmpID1]
                       except:
-                          print "Uniprot C1 not found"
+                          #print "Uniprot C1 not found"
                           continue
                       try:
                           tmpPDB2 = self.pdbMap[tmpID2]
                       except KeyError, k:
-                          print "Uniprot C2 not found: "+str(k)
+                          #print "Uniprot C2 not found: "+str(k)
                           continue
                       SS = tmpPDB1.start
                       SE = tmpPDB1.end
                       try:
                           AAC1 = tmpPDB1.pos[int(bond[4])]
                       except KeyError:
-                          print "no C1"
+                          #print "no C1"
                           continue
                       except ValueError:
                           try:
                               AAC1 = tmpPDB1.pos[int(bond[4][:-1])]
                           except KeyError:
-                              print "no C1"
+                              #print "no C1"
                               continue
                       try:
                           AAC2 = tmpPDB2.pos[int(bond[7])]
                       except KeyError:
-                          print "no C2"
+                          #print "no C2"
                           continue
                       except ValueError:
                           try:
                               AAC2 = tmpPDB2.pos[int(bond[7][:-1])]
                           except KeyError:
-                              print "no C2"
+                              #print "no C2"
                               continue
                       if AAC2 < AAC1:
                          tmp = AAC1
@@ -228,7 +243,7 @@ class exBedGraph:
                                 print "Not found: "+tmpPDB1.prot
                    elif line[0:5] == "DBREF" and line.find("UNP") <> -1:
                         tmpc = line.split(" ")
-                        print line
+                        #print line
                         chains.append(tmpc[3])
                    elif line[0:4] =="ATOM":
                         if hasSS == 0:
@@ -276,7 +291,7 @@ class exBedGraph:
                                 out.write(str(curPDB.revpos[i[1]]))
                             except KeyError:
                                 out.write("X")
-                            if found1 ==1 and found2 ==1:
+                            if found1 ==1 and found2 ==1 and curPDB.AA[curPDB.revpos[i[0]]] == "CYS" and curPDB.AA[curPDB.revpos[i[1]]] == "CYS":
                                 out.write("\tSSMissing"+"\t"+k)
                                 found3 = 0
                                 for x in i[2]:
